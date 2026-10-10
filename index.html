@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบรีวิวร้านค้า</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Prompt', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        /* แอนิเมชันหิมะ/ดาวตก */
+        .snowflake {
+            position: absolute;
+            top: -10px;
+            background: #ff6b81;
+            border-radius: 50%;
+            animation: fall linear infinite;
+            z-index: 1;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(360deg); opacity: 0.2; }
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .shop-img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 15px;
+        }
+        h1 { font-size: 24px; color: #2c3e50; margin-bottom: 10px; }
+        p { color: #666; font-size: 14px; margin-bottom: 15px; }
+        
+        /* คะแนนรวม */
+        .rating-summary {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f1c40f;
+            margin: 15px 0;
+        }
+        .rating-summary span {
+            color: #333;
+            font-size: 16px;
+        }
+
+        /* ปุ่มกด */
+        .btn {
+            background: #ff6b81;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+            margin: 5px;
+            width: 100%;
+        }
+        .btn:hover { background: #ff4757; }
+        .btn-secondary { background: #747d8c; }
+        .btn-secondary:hover { background: #57606f; }
+
+        /* ฟอร์มรีวิว */
+        .form-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        .star-rating {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+        .star-rating .active { color: #f1c40f; }
+
+        /* กล่องแสดงรีวิว */
+        .review-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            text-align: left;
+            border-left: 5px solid #ff6b81;
+        }
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        .hidden { display: none; }
+        
+        /* สไตล์ส่วนหลังบ้าน */
+        .admin-box {
+            background: #fff3f3;
+            border: 2px dashed #ff6b81;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- แอนิเมชันร่วงหล่น -->
+    <div id="animation-container"></div>
+
+    <div class="container">
+
+        <!-- หน้าที่ 1: หน้าแรก -->
+        <div id="page-home" class="card">
+            <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=600&q=80" alt="Shop Image" class="shop-img">
+            <h1>ร้านกาแฟสุดชิค (Cafe Minimal)</h1>
+            <p>ยินดีต้อนรับลูกค้าทุกท่าน สามารถเขียนรีวิวติชมได้เลยโดยไม่ต้องเช็กอิน!</p>
+
+            <!-- คะแนนรวม -->
+            <div class="rating-summary">
+                <span id="avg-stars">★★★★★</span> 
+                <br><span id="avg-score">0.0 / 5.0</span> <small>(<span id="total-reviews">0</span> รีวิว)</small>
+            </div>
+
+            <!-- เพลงประกอบ (ซ่อนตัวเล่น หรือแสดงปุ่มกด) -->
+            <div style="margin-bottom: 15px;">
+                <audio id="bg-music" loop>
+                    <source src="https://www.bensound.com/bensound-music/bensound-ukulele.mp3" type="audio/mpeg">
+                </audio>
+                <button class="btn btn-secondary" onclick="toggleMusic()" id="music-btn">🎵 เปิดเพลงคลอเบาๆ</button>
+            </div>
+
+            <button class="btn" onclick="showPage('page-review')">✍️ เขียนรีวิว</button>
+            <button class="btn btn-secondary" onclick="showPage('page-credits')">ℹ️ รายละเอียด / เครดิต</button>
+            <button class="btn" style="background:#2ed573; margin-top:15px;" onclick="showPage('page-admin')">🔒 ระบบหลังบ้าน (แอดมิน)</button>
+        </div>
+
+        <!-- หน้าที่ 2: หน้าเขียนรีวิว -->
+        <div id="page-review" class="card hidden">
+            <h1>เขียนรีวิวของคุณ</h1>
+            <p>ให้คะแนนและความประทับใจ</p>
+            
+            <div class="star-rating" id="star-input">
+                <span onclick="setRating(1)">★</span>
+                <span onclick="setRating(2)">★</span>
+                <span onclick="setRating(3)">★</span>
+                <span onclick="setRating(4)">★</span>
+                <span onclick="setRating(5)">★</span>
+            </div>
+
+            <div class="form-group">
+                <label>ชื่อของคุณ (จะไม่ใส่ก็ได้)</label>
+                <input type="text" id="review-name" class="form-control" placeholder="เช่น ลูกค้าขาจร">
+            </div>
+
+            <div class="form-group">
+                <label>ข้อความรีวิว</label>
+                <textarea id="review-comment" class="form-control" rows="3" placeholder="บรรยากาศดี กาแฟอร่อยมากครับ..."></textarea>
+            </div>
+
+            <button class="btn" onclick="submitReview()">ส่งรีวิว</button>
+            <button class="btn btn-secondary" onclick="showPage('page-home')">กลับหน้าแรก</button>
+        </div>
+
+        <!-- หน้าที่ 3: หน้าเครดิต / รายละเอียด -->
+        <div id="page-credits" class="card hidden">
+            <h1>รายละเอียดร้าน & เครดิต</h1>
+            <p>เปิดให้บริการทุกวัน 09:00 - 18:00 น.<br>พิกัด: ใจกลางเมือง</p>
+            <hr style="margin: 15px 0; border:0; border-top:1px solid #eee;">
+            <p><small>พัฒนาขึ้นเพื่อให้ลูกค้าสามารถแสดงความคิดเห็นได้อย่างอิสระ</small></p>
+            <button class="btn btn-secondary" onclick="showPage('page-home')">กลับหน้าแรก</button>
+        </div>
+
+        <!-- หน้าที่ 4: ระบบหลังบ้าน (คัดกรองคอมเมนต์) -->
+        <div id="page-admin" class="card admin-box hidden">
+            <h1>🔒 ระบบหลังบ้านแอดมิน</h1>
+            <p>ตรวจสอบและอนุมัติคอมเมนต์ก่อนแสดงผลหน้าแรก</p>
+            <div id="pending-list" style="margin-top: 15px;">
+                <!-- รายการรออนุมัติจะแสดงตรงนี้ -->
+            </div>
+            <button class="btn btn-secondary" onclick="showPage('page-home')" style="margin-top: 15px;">กลับหน้าแรก</button>
+        </div>
+
+        <!-- ส่วนแสดงรีวิวที่ผ่านการอนุมัติแล้ว (โชว์ที่หน้าแรกจำลอง) -->
+        <div class="card">
+            <h2 style="font-size: 18px; margin-bottom: 10px;">💬 ความประทับใจจากลูกค้า</h2>
+            <div id="approved-reviews-list">
+                <p style="color: #999; font-size: 13px;">ยังไม่มีรีวิวที่แสดงผล</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ข้อมูลจำลองรีวิว (เก็บในหน่วยความจำเบราว์เซอร์)
+        let reviews = JSON.parse(localStorage.getItem('shop_reviews')) || [
+            { id: 1, name: "คุณมิน", comment: "ร้านสวยมาก นั่งทำงานเพลินสุดๆ", rating: 5, status: "approved" },
+            { id: 2, name: "คุณนัท", comment: "กาแฟดี ขนมอร่อยครับ", rating: 4, status: "approved" }
+        ];
+
+        let currentRating = 5;
+
+        // สลับหน้าจอ
+        function showPage(pageId) {
+            document.getElementById('page-home').classList.add('hidden');
+            document.getElementById('page-review').classList.add('hidden');
+            document.getElementById('page-credits').classList.add('hidden');
+            document.getElementById('page-admin').classList.add('hidden');
+            
+            document.getElementById(pageId).classList.remove('hidden');
+            if(pageId === 'page-admin') {
+                renderAdminList();
+            }
+            renderApprovedReviews();
+            updateSummary();
+        }
+
+        // ระบบเลือกดาว
+        function setRating(star) {
+            currentRating = star;
+            const stars = document.querySelectorAll('#star-input span');
+            stars.forEach((s, index) => {
+                if (index < star) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+        }
+        // ตั้งค่าเริ่มต้นให้ดาวเต็ม 5 ดวง
+        setRating(5);
+
+        // ส่งรีวิวใหม่
+        function submitReview() {
+            const nameInput = document.getElementById('review-name').value.trim();
+            const commentInput = document.getElementById('review-comment').value.trim();
+
+            if (!commentInput) {
+                alert('กรุณากรอกข้อความรีวิวก่อนส่งครับ');
+                return;
+            }
+
+            const newReview = {
+                id: Date.now(),
+                name: nameInput !== "" ? nameInput : "ลูกค้าทั่วไป",
+                comment: commentInput,
+                rating: currentRating,
+                status: "pending" // รอแอดมินอนุมัติ
+            };
+
+            reviews.push(newReview);
+            saveAndRefresh();
+
+            alert('ส่งรีวิวเรียบร้อย! รอแอดมินตรวจสอบเพื่อแสดงผลหน้าเว็บครับ');
+            document.getElementById('review-comment').value = '';
+            document.getElementById('review-name').value = '';
+            showPage('page-home');
+        }
+
+        // บันทึกลง LocalStorage
+        function saveAndRefresh() {
+            localStorage.setItem('shop_reviews', JSON.stringify(reviews));
+            renderApprovedReviews();
+            updateSummary();
+        }
+
+        // แสดงรีวิวที่ผ่านการอนุมัติแล้วหน้าแรก
+        function renderApprovedReviews() {
+            const container = document.getElementById('approved-reviews-list');
+            const approved = reviews.filter(r => r.status === 'approved');
+
+            if (approved.length === 0) {
+                container.innerHTML = '<p style="color: #999; font-size: 13px;">ยังไม่มีรีวิวที่แสดงผล</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            approved.reverse().forEach(r => {
+                let starsStr = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+                container.innerHTML += `
+                    <div class="review-item">
+                        <div class="review-header">
+                            <span>${r.name}</span>
+                            <span style="color: #f1c40f;">${starsStr}</span>
+                        </div>
+                        <p style="font-size: 13px; color: #444; margin-top: 5px;">${r.comment}</p>
+                    </div>
+                `;
+            });
+        }
+
+        // คำนวณคะแนนเฉลี่ยดาวรวม
+        function updateSummary() {
+            const approved = reviews.filter(r => r.status === 'approved');
+            const total = approved.length;
+            document.getElementById('total-reviews').innerText = total;
+
+            if (total === 0) {
+                document.getElementById('avg-score').innerText = '0.0 / 5.0';
+                document.getElementById('avg-stars').innerText = '☆☆☆☆☆';
+                return;
+            }
+
+            let sum = approved.reduce((acc, curr) => acc + curr.rating, 0);
+            let avg = (sum / total).toFixed(1);
+            document.getElementById('avg-score').innerText = `${avg} / 5.0`;
+            
+            let fullStars = Math.round(avg);
+            document.getElementById('avg-stars').innerText = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+        }
+
+        // แสดงรายการหลังบ้านสำหรับคัดกรอง
+        function renderAdminList() {
+            const container = document.getElementById('pending-list');
+            const pending = reviews.filter(r => r.status === 'pending');
+
+            if (pending.length === 0) {
+                container.innerHTML = '<p style="font-size: 13px; color: #666;">ไม่มีคอมเมนต์ที่รอการคัดกรองในขณะนี้</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            pending.forEach(r => {
+                container.innerHTML += `
+                    <div class="review-item" style="border-left-color: #f1c40f; background: white;">
+                        <div class="review-header">
+                            <span>${r.name} (${r.rating} ดาว)</span>
+                        </div>
+                        <p style="font-size: 13px; margin: 5px 0;">${r.comment}</p>
+                        <button class="btn" style="padding: 5px 10px; font-size: 12px; width: auto; background: #2ed573;" onclick="approveReview(${r.id})">อนุมัติ</button>
+                        <button class="btn" style="padding: 5px 10px; font-size: 12px; width: auto; background: #ff4757;" onclick="deleteReview(${r.id})">ลบทิ้ง</button>
+                    </div>
+                `;
+            });
+        }
+
+        // ปุ่มอนุมัติรีวิว
+        function approveReview(id) {
+            reviews = reviews.map(r => r.id === id ? {...r, status: 'approved'} : r);
+            saveAndRefresh();
+            renderAdminList();
+        }
+
+        // ปุ่มลบรีวิว
+        function deleteReview(id) {
+            reviews = reviews.filter(r => r.id !== id);
+            saveAndRefresh();
+            renderAdminList();
+        }
+
+        // ควบคุมเสียงเพลง
+        let isPlaying = false;
+        function toggleMusic() {
+            const music = document.getElementById('bg-music');
+            const btn = document.getElementById('music-btn');
+            if (!isPlaying) {
+                music.play();
+                btn.innerText = "🔇 ปิดเพลง";
+                isPlaying = true;
+            } else {
+                music.pause();
+                btn.innerText = "🎵 เปิดเพลงคลอเบาๆ";
+                isPlaying = false;
+            }
+        }
+
+        // สร้างแอนิเมชันหิมะ/ดาวตกลงมาเรื่อยๆ
+        function createSnowflake() {
+            const container = document.getElementById('animation-container');
+            const snowflake = document.createElement('div');
+            snowflake.classList.add('snowflake');
+            
+            const size = Math.random() * 8 + 4 + 'px';
+            snowflake.style.width = size;
+            snowflake.style.height = size;
+            snowflake.style.left = Math.random() * 100 + 'vw';
+            
+            const duration = Math.random() * 3 + 2 + 's';
+            snowflake.style.animationDuration = duration;
+            
+            container.appendChild(snowflake);
+            setTimeout(() => { snowflake.remove(); }, 5000);
+        }
+        setInterval(createSnowflake, 300);
+
+        // โหลดข้อมูลเริ่มต้นตอนเปิดเว็บ
+        updateSummary();
+        renderApprovedReviews();
+    </script>
+</body>
+</html>
